@@ -16,12 +16,26 @@ defmodule Escraper.WorkQueue do
   end
 
   def handle_call(:pop, _from, queue) do
-    { h, queue } = pop_hashset(queue)
-    { :reply, h, queue }
+    case pop_hashset(queue) do
+      { :empty , _ } -> { :reply, { :error, :empty }, queue }
+      { h, queue } -> { :reply, { :ok, h }, queue }
+    end
+  end
+
+  def handle_call({ :in_queue?, url }, _from, queue) do
+    case Enum.find(queue, fn(p) -> p.url == url end) do
+      nil -> { :reply, false, queue }
+      _   -> { :reply, true, queue }
+    end
   end
 
   def pop_hashset(set) do
-    h = Enum.at(set, 0)
-    { h, HashSet.delete(set, h) }
+    case HashSet.size(set) do
+      0 -> 
+        { :empty, set }
+      l ->
+        { Enum.first(set), HashSet.delete(set, Enum.first(set)) }
+    end
   end
+
 end

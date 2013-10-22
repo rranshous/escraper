@@ -5,11 +5,37 @@ defmodule Escraper.Helpers do
   end
 
   def url_off_root?(url, root_url) do
+    # TODO: make better
+    String.slice(url, 0, String.length(root_url)) == root_url
   end
 
   def parse_links_from_html(html) do
-    pattern = %r/<a href=["|'](.*?)["|']>/
-    Enum.map Regex.scan(pattern, html), &Enum.at(&1,1)
+    tree = tree_from_html(html)
+    Enum.uniq(Enum.filter(parse_links_from_tree(tree), fn(l) -> l != nil end))
+  end
+
+  def tree_from_html(html) do
+    try do
+      :mochiweb_html.parse(html)
+    rescue
+      _ -> IO.puts "FAILed parse"
+    end
+  end
+
+  def parse_links_from_tree({ "a", args, children }) do
+    [ args_get(args, "href") | parse_links_from_children(children) ]
+  end
+
+  def parse_links_from_tree({ tag, args, children }) do
+    parse_links_from_children(children)
+  end
+
+  def parse_links_from_tree(content) do
+    []
+  end
+
+  def parse_links_from_children(children) do
+    Enum.flat_map children, &parse_links_from_tree(&1)
   end
 
   def data_is_html?(data) do
@@ -41,9 +67,15 @@ defmodule Escraper.Helpers do
 
   def print_branch({ tag, attrs, children }, depth // 0) do
     padded = String.rjust(tag, String.length(tag) + depth)
-    IO.puts "#{padded} :: #{inspect(attrs))}"
+    IO.puts "#{padded} :: #{inspect(attrs)}"
     Enum.each(children, &print_branch(&1, depth+1))
   end
 
+  def args_get(args, arg) do
+    case Enum.find(args, fn({k,v}) -> arg ==  k end) do
+      { ^arg, value } -> value
+      _ -> nil
+    end
+  end
 
 end

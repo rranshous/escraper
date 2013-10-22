@@ -15,7 +15,6 @@ defmodule Escraper.ScrapeHistory do
   end
 
   def handle_call({ :contains, url }, _from, history) do
-    IO.puts "checking unseen [#{url}]: #{HashSet.member?(history,url)}"
     { :reply, HashSet.member?(history, url), history }
   end
 

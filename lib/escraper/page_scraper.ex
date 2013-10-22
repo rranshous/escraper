@@ -10,15 +10,17 @@ defmodule Escraper.PageScraper do
   end
 
   def handle_cast(:work_added, state) do
-    IO.puts "work was added"
-    page = :gen_server.call(:workqueue, :pop)
-    IO.puts "work: #{page.url}"
-    spawn_scraper page
+    case :gen_server.call(:workqueue, :pop) do
+      { :ok, page } ->
+        IO.puts "work: #{page.url}"
+        spawn_scraper page
+
+      { :error, :empty } -> nil
+    end
     { :noreply, state }
   end
 
   def spawn_scraper(page) do
-    IO.puts "spawning scraper: #{page.url}"
     spawn(Escraper.PageScraper, :do_scrape, [page])
   end
 
@@ -30,17 +32,18 @@ defmodule Escraper.PageScraper do
         { :ok, body, c2 } = :hackney.body(c)
         page = page.body(body)
         page = page.status(status)
-        IO.puts "scrape status: #{status}"
-        IO.puts "response size: #{String.length(page.body)}"
-        if(Escraper.Helpers.data_is_html?(body)) do
-          page = page.links(parse_links(page))
-          page = page.is_html(true)
-          IO.puts "pushing page: #{page.url}"
-          IO.puts "links: #{length(page.links)} :: #{page.links}"
-          :gen_server.cast(:sitescraper, { :add_page, page })
+        if(String.length(page.body) == 0 || page.status == 500) do
+          IO.puts "is bad [#{page.url}]: #{page.status}"
+          :gen_server.cast(:sitescraper, { :add_page, page.failed(true) })
         else
-          IO.puts "is not html: #{page.url}"
-          :gen_server.cast(:sitescraper, { :add_page, page.is_image(true) })
+          if(Escraper.Helpers.data_is_html?(body)) do
+            page = page.links(parse_links(page))
+            page = page.is_html(true)
+            :gen_server.cast(:sitescraper, { :add_page, page })
+          else
+            IO.puts "is not html: #{page.url}"
+            :gen_server.cast(:sitescraper, { :add_page, page.is_image(true) })
+          end
         end
 
       { :error, reason } ->
