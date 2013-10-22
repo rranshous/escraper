@@ -31,7 +31,6 @@ defmodule Escraper.SiteScraper do
       site_links = Enum.filter(page.links,
                            &Escraper.Helpers.url_off_root?(&1, page.root_url))
       site_links = Enum.filter site_links, &(!seen?(&1))
-      site_links = Enum.filter site_links, &(!in_queue?(&1))
       site_links = Enum.map site_links, &String.replace(&1,%r/#.*/,"")
       Enum.each site_links, &add_followup_work(&1, page.root_url)
       if(!scrape.started) do
@@ -50,9 +49,7 @@ defmodule Escraper.SiteScraper do
   end
 
   def handle_call({ :status, root_url }, _from, state) do
-    IO.puts "status: #{root_url}"
     scrape = find_scrape(state, root_url)
-    IO.puts "scrape: #{scrape.root_url}"
     { :reply, [started: scrape.started, completed: scrape.completed], state }
   end
 
@@ -61,7 +58,7 @@ defmodule Escraper.SiteScraper do
   end
 
   def handle_call({ :dump, root_url }, _from, state) do
-    { :reply, Dict.get(state, root_url), state }
+    { :reply, Dict.get(state, find_scrape(state, root_url)), state }
   end
 
   # TODO: private
@@ -72,15 +69,11 @@ defmodule Escraper.SiteScraper do
 
   def add_followup_work(url, root_url) do
     new_page = Page.new(root_url: root_url, url: url)
-    :gen_server.cast(:workqueue, { :add, new_page })
+    :gen_server.cast(:pagescraper, { :work_added, new_page })
   end
 
   def seen?(url) do
     :gen_server.call(:scrapehistory, { :contains, url })
-  end
-
-  def in_queue?(url) do
-    :gen_server.call(:workqueue, { :in_queue?, url })
   end
 
 end

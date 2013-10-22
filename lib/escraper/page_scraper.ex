@@ -12,11 +12,15 @@ defmodule Escraper.PageScraper do
   def handle_cast(:work_added, state) do
     case :gen_server.call(:workqueue, :pop) do
       { :ok, page } ->
-        IO.puts "work: #{page.url}"
         spawn_scraper page
 
       { :error, :empty } -> nil
     end
+    { :noreply, state }
+  end
+
+  def handle_cast({ :work_added, page }, state) do
+    spawn_scraper page
     { :noreply, state }
   end
 
@@ -53,8 +57,9 @@ defmodule Escraper.PageScraper do
   end
 
   def parse_links(page) do
-    IO.puts "parsing links from: #{page.url}"
-    Escraper.Helpers.parse_links_from_html page.body
+    links = Escraper.Helpers.parse_links_from_html page.body
+    IO.puts "links [#{page.url}]: #{length(links)}"
+    links
   end
 
 end

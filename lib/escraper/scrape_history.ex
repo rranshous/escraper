@@ -10,7 +10,6 @@ defmodule Escraper.ScrapeHistory do
   end
 
   def handle_cast({ :set_processed, url }, history) do
-    IO.puts "setting processed: #{url}"
     { :noreply, HashSet.put(history, url) }
   end
 
