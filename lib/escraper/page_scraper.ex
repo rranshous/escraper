@@ -28,8 +28,20 @@ defmodule Escraper.PageScraper do
     { :ok, body, c2 } = :hackney.body(c)
     IO.puts "scrape status: #{status}"
     page = page.body(body)
+    page = page.links(parse_links(page))
     IO.puts "pushing page: #{page.url} :: #{String.length(page.body)}"
+    IO.puts "links: #{length(page.links)} :: #{page.links}"
     :gen_server.cast(:sitescraper, { :add_page, page })
+  end
+
+  def parse_links(page) do
+    IO.puts "parsing links from: #{page.url}"
+    parse_links_from_html page.body
+  end
+
+  def parse_links_from_html(html) do
+    pattern = %r/<a href=["|'](.*?)["|']>/
+    Enum.map Regex.scan(pattern, html), &Enum.at(&1,1)
   end
 
 end

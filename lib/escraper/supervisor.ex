@@ -11,7 +11,8 @@ defmodule Escraper.Supervisor do
       # worker(Escraper.Worker, [])
       worker(Escraper.WorkQueue, []),
       worker(Escraper.SiteScraper, []),
-      worker(Escraper.PageScraper, [])
+      worker(Escraper.PageScraper, []),
+      worker(Escraper.ScrapeHistory, [])
     ]
 
     # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
