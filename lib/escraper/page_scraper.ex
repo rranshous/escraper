@@ -24,24 +24,34 @@ defmodule Escraper.PageScraper do
 
   def do_scrape(page) do
     IO.puts "doing scrape: #{page.url}"
-    { :ok, status, headers, c } = :hackney.request(:get, page.url, [], [], [])
-    { :ok, body, c2 } = :hackney.body(c)
-    IO.puts "scrape status: #{status}"
-    page = page.body(body)
-    page = page.links(parse_links(page))
-    IO.puts "pushing page: #{page.url} :: #{String.length(page.body)}"
-    IO.puts "links: #{length(page.links)} :: #{page.links}"
-    :gen_server.cast(:sitescraper, { :add_page, page })
+    case :hackney.request(:get, page.url, [], [], []) do
+
+      { :ok, status, headers, c } -> 
+        { :ok, body, c2 } = :hackney.body(c)
+        page = page.body(body)
+        page = page.status(status)
+        IO.puts "scrape status: #{status}"
+        IO.puts "response size: #{String.length(page.body)}"
+        if(Escraper.Helpers.data_is_html?(body)) do
+          page = page.links(parse_links(page))
+          page = page.is_html(true)
+          IO.puts "pushing page: #{page.url}"
+          IO.puts "links: #{length(page.links)} :: #{page.links}"
+          :gen_server.cast(:sitescraper, { :add_page, page })
+        else
+          IO.puts "is not html: #{page.url}"
+          :gen_server.cast(:sitescraper, { :add_page, page.is_image(true) })
+        end
+
+      { :error, reason } ->
+        IO.puts "request failed: #{page.url}"
+        :gen_server.cast(:sitescraper, { :add_page, page.failed(true) })
+    end
   end
 
   def parse_links(page) do
     IO.puts "parsing links from: #{page.url}"
-    parse_links_from_html page.body
-  end
-
-  def parse_links_from_html(html) do
-    pattern = %r/<a href=["|'](.*?)["|']>/
-    Enum.map Regex.scan(pattern, html), &Enum.at(&1,1)
+    Escraper.Helpers.parse_links_from_html page.body
   end
 
 end
