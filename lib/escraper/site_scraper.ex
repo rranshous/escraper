@@ -16,9 +16,8 @@ defmodule Escraper.SiteScraper do
 
   def handle_cast({ :start, root_url }, state) do
     scrape = Scrape.new(root_url: root_url)
-    page = Page.new(url: root_url, root_url: root_url)
     IO.puts "starting scrape: #{scrape.root_url}"
-    :gen_server.cast(:workqueue, { :add, page })
+    add_followup_work root_url, root_url
     { :noreply, Dict.put(state, scrape, []) }
   end
 

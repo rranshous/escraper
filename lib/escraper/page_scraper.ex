@@ -5,23 +5,23 @@ defmodule Escraper.PageScraper do
     :gen_server.start_link({ :local, :pagescraper }, __MODULE__, [], [])
   end
 
-  def init(state) do
-    { :ok, state }
+  def init(log) do
+    { :ok, HashSet.new(log) }
   end
 
-  def handle_cast(:work_added, state) do
-    case :gen_server.call(:workqueue, :pop) do
-      { :ok, page } ->
-        spawn_scraper page
-
-      { :error, :empty } -> nil
+  def handle_cast({ :work_added, page }, log) do
+    if(! HashSet.member?(log, page.url)) do
+      log = HashSet.put(log, page.url)
+      spawn_scraper page
+    else
+      IO.puts "skipping work, in progress: #{page.url}"
     end
-    { :noreply, state }
+    { :noreply, log }
   end
 
-  def handle_cast({ :work_added, page }, state) do
-    spawn_scraper page
-    { :noreply, state }
+  def handle_cast({ :work_completed, url }, log) do
+    #{ :noreply, HashSet.delete(log, url) }
+    { :noreply, log }
   end
 
   def spawn_scraper(page) do
@@ -55,6 +55,8 @@ defmodule Escraper.PageScraper do
         IO.puts "request failed: #{page.url}"
         :gen_server.cast(:sitescraper, { :add_page, page.failed(true) })
     end
+
+    :gen_server.cast(:pagescraper, { :work_completed, page.url })
   end
 
   def parse_links(page) do

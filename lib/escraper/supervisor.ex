@@ -9,7 +9,6 @@ defmodule Escraper.Supervisor do
     children = [
       # Define workers and child supervisors to be supervised
       # worker(Escraper.Worker, [])
-      worker(Escraper.WorkQueue, []),
       worker(Escraper.SiteScraper, []),
       worker(Escraper.PageScraper, []),
       worker(Escraper.ScrapeHistory, [])
