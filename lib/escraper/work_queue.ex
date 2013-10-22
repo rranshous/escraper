@@ -10,7 +10,8 @@ defmodule Escraper.WorkQueue do
   end
 
   def handle_cast({ :add, page }, queue) do
-    :gen_server.cast(:page_scraper, :work_added)
+    IO.puts "work queue adding: #{page.url}"
+    :gen_server.cast(:pagescraper, :work_added)
     { :noreply, [page|queue] }
   end
 

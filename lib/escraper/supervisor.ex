@@ -9,9 +9,9 @@ defmodule Escraper.Supervisor do
     children = [
       # Define workers and child supervisors to be supervised
       # worker(Escraper.Worker, [])
-      worker(Escraper.PageCache, []),
       worker(Escraper.WorkQueue, []),
-      worker(Escraper.SiteScraper, [])
+      worker(Escraper.SiteScraper, []),
+      worker(Escraper.PageScraper, [])
     ]
 
     # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
