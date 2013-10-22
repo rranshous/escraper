@@ -30,6 +30,7 @@ defmodule Escraper.PageScraper do
 
   def do_scrape(page) do
     IO.puts "doing scrape: #{page.url}"
+
     case :hackney.request(:get, page.url, [], [], []) do
 
       { :ok, status, headers, c } -> 
@@ -58,8 +59,26 @@ defmodule Escraper.PageScraper do
 
   def parse_links(page) do
     links = Escraper.Helpers.parse_links_from_html page.body
+    links = Enum.map links, &resolve_relative_links(&1, page.root_url)
     IO.puts "links [#{page.url}]: #{length(links)}"
     links
+  end
+
+  def resolve_relative_links(url, root_url) do
+    if(String.at(url,0) == "/") do
+      url = root_url <> url
+    end
+    if(String.slice(url,0,4) != "http") do
+      if(String.at(url,0) == ".") do
+        url = String.slice(url,1,-1)
+      end
+      if(String.at(url,0) == "/") do
+        url = root_url <> url
+      else
+        url = root_url <> "/" <> url
+      end
+    end
+    url
   end
 
 end
