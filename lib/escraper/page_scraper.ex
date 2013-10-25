@@ -67,20 +67,24 @@ defmodule Escraper.PageScraper do
   end
 
   def resolve_relative_links(url, root_url) do
-    if(String.at(url,0) == "/") do
-      url = root_url <> url
-    end
-    if(String.slice(url,0,4) != "http") do
-      if(String.at(url,0) == ".") do
-        url = String.slice(url,1,-1)
-      end
-      if(String.at(url,0) == "/") do
-        url = root_url <> url
+    if(String.starts_with?(url, "/")) do
+      if(String.ends_with?(root_url, "/")) do
+        url = String.slice(root_url, 0, String.length(root_url)-1) <> url
       else
-        url = root_url <> "/" <> url
+        url = root_url <> url
+      end
+    else
+      if(String.slice(url,0,4) != "http") do
+        if(String.at(url,0) == ".") do
+          url = String.slice(url,1,-1)
+        end
+        if(String.at(url,0) == "/") do
+          url = root_url <> url
+        else
+          url = root_url <> "/" <> url
+        end
       end
     end
     url
   end
-
 end
